@@ -4,7 +4,11 @@ use std::fs;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-pub fn run_viewer(width: i32, height: i32, image_file: &'static str) -> Result<(), Box<dyn Error + '_>> {
+pub fn run_viewer(
+    width: i32,
+    height: i32,
+    image_file: &'static str,
+) -> Result<(), Box<dyn Error + '_>> {
     let app = app::App::default();
     let mut window_instance = Window::default()
         .with_size(width + 10, height + 25) //on Mac borders mess things up

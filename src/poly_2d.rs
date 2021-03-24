@@ -16,10 +16,11 @@
  *
  * This code is an example of:
  *
- * - Using a callback.
  * - Vector of tuples.
  * - Vector manipulation.
  */
+
+use crate::common_2d::PutPixel;
 
 // Used to store x intersections for the current y axis ('pixel_y')
 struct NodeX {
@@ -28,18 +29,16 @@ struct NodeX {
     x: i32,
 }
 
-/**
- *
- * - callback: Takes the x, y coords and x-span (x_end is not inclusive),
- *   note that `x_end` will always be greater than `x`.
- *
- */
-pub fn draw_poly<F: FnMut(i32, i32, i32)>(
-    xmax: i32,
-    ymax: i32,
-    coords: &Vec<[i32; 2]>,
-    callback: &mut F,
-) {
+fn draw_line(canvas: &mut dyn PutPixel, width: i32, height: i32, x_start: i32, x_end: i32, y: i32) {
+    for x in x_start..x_end {
+        if x >= 0 && x < width && y >= 0 && y < height {
+            canvas.put_pixel(x, y);
+        }
+    }
+    return;
+}
+
+pub fn draw_poly(canvas: &mut dyn PutPixel, xmax: i32, ymax: i32, coords: &Vec<[i32; 2]>) {
     /* Originally by Darel Rex Finley, 2007.
      * Optimized by Campbell Barton, 2016 to keep sorted intersections. */
 
@@ -187,7 +186,14 @@ pub fn draw_poly<F: FnMut(i32, i32, i32)>(
 
                     // Single call per x-span.
                     if x_src < x_dst {
-                        callback(x_src - xmin, x_dst - xmin, pixel_y - ymin);
+                        draw_line(
+                            canvas,
+                            xmax,
+                            ymax,
+                            x_src - xmin,
+                            x_dst - xmin,
+                            pixel_y - ymin,
+                        );
                     }
                 }
                 i += 2;

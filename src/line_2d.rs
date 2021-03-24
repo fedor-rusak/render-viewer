@@ -1,17 +1,18 @@
-use image::{Rgba, RgbaImage};
 use std::cmp;
 
-pub fn plot_line<F: FnMut(i32, i32)>(x0: i32, y0: i32, x1: i32, y1: i32, callback: &mut F) {
+use crate::common_2d::PutPixel;
+
+pub fn plot_line(canvas: &mut dyn PutPixel, x0: i32, y0: i32, x1: i32, y1: i32) {
     let dx = (x1 - x0).abs();
     let sx = if x0 < x1 { 1 } else { -1 };
     let dy = (y1 - y0).abs();
     let sy = if y0 < y1 { 1 } else { -1 };
-    let mut err = dx - dy; /* error value e_xy */
+    let mut err = dx - dy;
 
     let mut x = x0;
     let mut y = y0;
     loop {
-        callback(x, y);
+        canvas.put_pixel(x, y);
 
         if x == x1 && y == y1 {
             break;
@@ -41,7 +42,7 @@ fn get_alpha(value: i32, ed: f64, wd: f64) -> u8 {
 
 // some cool stuff!! http://members.chello.at/~easyfilter/bresenham.html
 pub fn plot_line_wide(
-    image: &mut RgbaImage,
+    canvas: &mut dyn PutPixel,
     start_x: i32,
     start_y: i32,
     end_x: i32,
@@ -64,10 +65,11 @@ pub fn plot_line_wide(
 
     loop {
         let alpha = get_alpha(err - delta_x + delta_y, diagonal, half_width);
-        image[(x as u32, y as u32)] = Rgba([0, 255, 255, alpha]);
+        canvas.put_pixel_alpha(x, y, alpha);
 
+        //hack to handle situation when err is modified in vertical pixels step!
         temp_err = err;
-        temp_x = x; //can be modifidiagonal in vertical pixels step!
+        temp_x = x;
         if 2 * temp_err >= -delta_x {
             /* vertical pixels step */
             temp_err += delta_y;
@@ -78,7 +80,7 @@ pub fn plot_line_wide(
                 temp_err += delta_x;
                 temp_y += step_y;
                 let alpha = get_alpha(temp_err, diagonal, half_width);
-                image[(x as u32, temp_y as u32)] = Rgba([0, 255, 255, alpha]);
+                canvas.put_pixel_alpha(x, temp_y, alpha);
             }
             if x == end_x {
                 break;
@@ -97,7 +99,7 @@ pub fn plot_line_wide(
                 temp_err += delta_y;
                 temp_x += step_x;
                 let alpha = get_alpha(temp_err, diagonal, half_width);
-                image[(temp_x as u32, y as u32)] = Rgba([0, 255, 255, alpha]);
+                canvas.put_pixel_alpha(temp_x, y, alpha);
             }
             if y == end_y {
                 break;
