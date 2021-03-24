@@ -67,8 +67,7 @@ pub fn plot_line_wide(
         let alpha = get_alpha(err - delta_x + delta_y, diagonal, half_width);
         canvas.put_pixel_alpha(x, y, alpha);
 
-        //hack to handle situation when err is modified in vertical pixels step!
-        temp_err = err;
+        temp_err = err; //hack because it can be modified in vertical pixels step!
         temp_x = x;
         if 2 * temp_err >= -delta_x {
             /* vertical pixels step */

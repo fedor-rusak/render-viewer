@@ -42,5 +42,25 @@
         300
       ]
     ]
+  },
+  {
+    "geometry": "tile",
+    "coords": [
+      [
+        300,
+        300
+      ]
+    ],
+    "src": "resources/ball.png"
+  },
+  {
+    "geometry": "tile",
+    "coords": [
+      [
+        -75,
+        -75
+      ]
+    ],
+    "src": "resources/ball.png"
   }
 ]

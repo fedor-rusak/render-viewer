@@ -1,4 +1,4 @@
-use image::{ImageBuffer, Rgba, RgbaImage};
+use image::{imageops, Rgba, RgbaImage};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::error::Error;
@@ -18,12 +18,14 @@ const IMAGE_FILE: &str = "output.png";
 enum Geometry {
     Line,
     Poly,
+    Tile,
 }
 
 #[derive(Serialize, Deserialize)]
 struct DrawCommand {
     geometry: Geometry,
     coords: Vec<[i32; 2]>,
+    src: Option<String>,
     stroke_width: Option<f64>,
     color: Option<[i32; 4]>,
 }
@@ -35,7 +37,7 @@ struct Canvas {
 impl Canvas {
     fn new(width: i32, height: i32) -> Self {
         Canvas {
-            image: ImageBuffer::new(width as u32, height as u32),
+            image: RgbaImage::new(width as u32, height as u32),
         }
     }
 }
@@ -68,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let coords = &command.coords;
 
                 if command.geometry == Geometry::Line {
-                    println!("Line coords: {:?}", coords);
+                    println!("Line\n  coords: {:?}", coords);
                     let start = coords[0];
                     let end = coords[1];
 
@@ -86,9 +88,51 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
                     }
                 } else if command.geometry == Geometry::Poly {
-                    println!("Poly coords: {:?}", coords);
+                    println!("Poly\n  coords: {:?}", coords);
 
                     poly_2d::draw_poly(&mut canvas, WIDTH, HEIGHT, &coords);
+                } else if command.geometry == Geometry::Tile {
+                    println!("Tile\n  coords: {:?}", coords);
+
+                    let mut tile = match &command.src {
+                        None => panic!("Tile has no src element!"),
+                        Some(src) => {
+                            println!("  src: {:?}", src);
+                            image::open(src)?
+                        }
+                    };
+                    let [x, y] = coords[0];
+
+                    if x >= 0 && y >= 0 {
+                        imageops::overlay(&mut canvas.image, &tile, x as u32, y as u32);
+                    } else {
+                        let (width, height) = tile.to_rgba8().dimensions();
+                        if width as i32 + x <= 0 || height as i32 + y <= 0 {
+                            panic!("Tile offset suggests tile render outside image!")
+                        }
+
+                        let (crop_x, crop_width) = if x < 0 {
+                            (-x, width as i32 + x)
+                        } else {
+                            (0, width as i32)
+                        };
+                        let (crop_y, crop_height) = if y < 0 {
+                            (-y, height as i32 + y)
+                        } else {
+                            (0, height as i32)
+                        };
+                        let cropped = imageops::crop(
+                            &mut tile,
+                            crop_x as u32,
+                            crop_y as u32,
+                            crop_width as u32,
+                            crop_height as u32,
+                        );
+
+                        let pos_x = if x < 0 { 0 } else { x };
+                        let pos_y = if y < 0 { 0 } else { y };
+                        imageops::overlay(&mut canvas.image, &cropped, pos_x as u32, pos_y as u32);
+                    }
                 }
             }
         }
