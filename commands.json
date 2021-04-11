@@ -62,5 +62,15 @@
       ]
     ],
     "src": "resources/ball.png"
+  },
+  {
+    "geometry": "text",
+    "coords": [
+      [
+        30,
+        30
+      ]
+    ],
+    "text": "test render"
   }
 ]

@@ -9,6 +9,13 @@ mod line_2d;
 mod poly_2d;
 mod viewer;
 
+use fonterator as font; // For parsing font file.
+                        // For rendering text
+use footile::{FillRule, Plotter, Transform};
+use pix::{matte::Matte8, ops::SrcOver, rgb::Rgba8p, Raster};
+
+const FONT_SIZE: f32 = 32.0;
+
 const WIDTH: i32 = 640;
 const HEIGHT: i32 = 480;
 const IMAGE_FILE: &str = "output.png";
@@ -19,6 +26,7 @@ enum Geometry {
     Line,
     Poly,
     Tile,
+    Text,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -26,6 +34,7 @@ struct DrawCommand {
     geometry: Geometry,
     coords: Vec<[i32; 2]>,
     src: Option<String>,
+    text: Option<String>,
     stroke_width: Option<f64>,
     color: Option<[i32; 4]>,
 }
@@ -133,6 +142,45 @@ fn main() -> Result<(), Box<dyn Error>> {
                         let pos_y = if y < 0 { 0 } else { y };
                         imageops::overlay(&mut canvas.image, &cropped, pos_x as u32, pos_y as u32);
                     }
+                } else if command.geometry == Geometry::Text {
+                    println!("Text\n  coords: {:?}", coords);
+
+                    let text = match &command.text {
+                        None => panic!("Text command has no text element!"),
+                        Some(text) => {
+                            println!("  text: {:?}", text);
+                            text
+                        }
+                    };
+
+                    let font = font::monospace_font();
+
+                    // Render English Left Aligned.
+                    let mut p = Plotter::new(Raster::with_clear(512, 512));
+                    let mut r = Raster::with_clear(512, 512);
+                    p.set_transform(Transform::with_scale(FONT_SIZE, FONT_SIZE));
+                    let path = font
+                        .render(text, (512.0) / FONT_SIZE, font::TextAlign::Left)
+                        .0;
+                    r.composite_matte(
+                        (0, 0, 512, 512),
+                        p.fill(FillRule::NonZero, path, Matte8::new(255)),
+                        (),
+                        Rgba8p::new(0, 0, 0, 255),
+                        SrcOver,
+                    );
+
+                    let rendered_text = match RgbaImage::from_raw(
+                        r.width(),
+                        r.height(),
+                        r.as_u8_slice().to_vec(),
+                    ) {
+                        None => panic!("Can't decode rendered text!"),
+                        Some(render_result) => render_result,
+                    };
+
+                    let [x, y] = coords[0];
+                    imageops::overlay(&mut canvas.image, &rendered_text, x as u32, y as u32);
                 }
             }
         }
